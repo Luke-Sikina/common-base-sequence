@@ -9,7 +9,7 @@ import (
 
 func TestGatherCommonSequences(t *testing.T) {
 	sequence := "CCTAACCCTAACCCTAACCTAACCCTAACCCTA\n"
-	expected := make(map[string]uint)
+	expected := make(map[string]uint32)
 	expected["CCTAACCCTAACCCTA"] = 2
 	expected["CTAACCCTAACCCTAA"] = 1
 	expected["TAACCCTAACCCTAAC"] = 1
@@ -30,13 +30,27 @@ func TestGatherCommonSequences(t *testing.T) {
 
 	counts := GatherCommonSequences(bufio.NewReader(strings.NewReader(sequence)))
 	for hash, count := range counts {
-		subSequence := ReverseHash(hash)
+		subSequence := reverseHash(hash)
 		assert.Equal(t, expected[subSequence], count)
 	}
 }
 
 func TestReverseHash(t *testing.T) {
 	expected := "AGCTAGCTAGCTAGCT"
-	actual := ReverseHash(454761243)
+	actual := reverseHash(454761243)
 	assert.Equal(t, expected, actual)
+}
+
+func TestCombineMaps(t *testing.T) {
+	first := make(map[uint32]uint32)
+	first[0] = 1
+	first[1] = 10
+	second := make(map[uint32]uint32)
+	second[0] = 1
+	second[2] = 5
+
+	CombineMaps(first, second)
+	assert.Equal(t, first[0], uint32(2))
+	assert.Equal(t, first[1], uint32(10))
+	assert.Equal(t, first[2], uint32(5))
 }

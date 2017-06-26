@@ -3,14 +3,55 @@ package main
 import (
 	"bufio"
 	"io"
+	"io/ioutil"
 	"log"
+	"os"
 	"strconv"
+	"strings"
 )
 
-func GatherCommonSequences(stream *bufio.Reader) (frequencies map[uint32]uint) {
+func main() {
+	args := os.Args[1:]
+	if len(args) == 1 {
+		iterateOverFastaFiles(args[0])
+	} else {
+		log.Fatal("Incorrect number of args. Need a file to read from.")
+	}
+}
+
+func iterateOverFastaFiles(dir string) {
+	counts := make(map[uint32]uint32)
+	files, _ := ioutil.ReadDir(dir)
+	for _, f := range files {
+		name := dir + "/" + f.Name()
+		if strings.HasSuffix(name, ".fa") {
+			log.Print("Finding sequences in file: " + name)
+			toRead, err := os.Open(name)
+			if err == nil {
+				CombineMaps(counts, GatherCommonSequences(bufio.NewReader(toRead)))
+			} else {
+				log.Fatal("Error opening file: " + name + ", ignoring.")
+				log.Fatal(err)
+			}
+		}
+	}
+
+	var max uint32
+	var sequence string
+	for key, value := range counts {
+		if max < value {
+			max = value
+			sequence = reverseHash(key)
+		}
+	}
+
+	println("Most frequenct sequence, " + sequence + ", occurs " + strconv.Itoa(int(max)) + " times.")
+}
+
+func GatherCommonSequences(stream *bufio.Reader) (frequencies map[uint32]uint32) {
 	var validTokenSequence uint16 = 0
 	var hash uint32 = 0
-	frequencies = make(map[uint32]uint)
+	frequencies = make(map[uint32]uint32)
 	for {
 		if c, _, err := stream.ReadRune(); err != nil {
 			if err == io.EOF {
@@ -19,7 +60,6 @@ func GatherCommonSequences(stream *bufio.Reader) (frequencies map[uint32]uint) {
 				log.Fatal(err)
 			}
 		} else {
-			log.Print(strconv.QuoteRune(c))
 			skip := false
 			switch c {
 			case 'A':
@@ -47,7 +87,7 @@ func GatherCommonSequences(stream *bufio.Reader) (frequencies map[uint32]uint) {
 	return
 }
 
-func ReverseHash(hash uint32) (bases string) {
+func reverseHash(hash uint32) (bases string) {
 	for i := 0; i < 16; i++ {
 		switch hash % 4 {
 		case 0:
@@ -62,4 +102,10 @@ func ReverseHash(hash uint32) (bases string) {
 		hash = hash >> 2
 	}
 	return
+}
+
+func CombineMaps(target, toAdd map[uint32]uint32) {
+	for key, valueToAdd := range toAdd {
+		target[key] += valueToAdd
+	}
 }
