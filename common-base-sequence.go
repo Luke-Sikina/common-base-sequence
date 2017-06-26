@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 func main() {
@@ -36,6 +37,12 @@ func iterateOverFastaFiles(dir string) {
 		}
 	}
 
+	max, sequence := findMax(counts)
+
+	println("Most frequent sequence, " + sequence + ", occurs " + strconv.Itoa(int(max)) + " times.")
+}
+
+func findMax(counts map[uint32]uint32) (uint32, string) {
 	var max uint32
 	var sequence string
 	for key, value := range counts {
@@ -44,43 +51,45 @@ func iterateOverFastaFiles(dir string) {
 			sequence = reverseHash(key)
 		}
 	}
-
-	println("Most frequenct sequence, " + sequence + ", occurs " + strconv.Itoa(int(max)) + " times.")
+	return max, sequence
 }
 
-func GatherCommonSequences(stream *bufio.Reader) (frequencies map[uint32]uint32) {
+const (
+	max16BitU uint16 = 65535
+	A                = iota
+	G
+	C
+	T
+)
+
+func GatherCommonSequences(stream *bufio.Reader) (counts map[uint32]uint32) {
+	counts = make(map[uint32]uint32)
 	var validTokenSequence uint16 = 0
 	var hash uint32 = 0
-	frequencies = make(map[uint32]uint32)
-	for {
-		if c, _, err := stream.ReadRune(); err != nil {
-			if err == io.EOF {
-				break
-			} else {
-				log.Fatal(err)
-			}
-		} else {
-			skip := false
+	var c rune
+	var err error
+	for err != io.EOF {
+		if c, _, err = stream.ReadRune(); err != nil {
+			log.Fatal(err)
+		} else if !unicode.IsSpace(c) {
 			switch c {
 			case 'A':
-				hash = hash << 2
+				hash = hash<<2 + A
 				validTokenSequence = (validTokenSequence << 1) + 1
 			case 'G':
-				hash = (hash << 2) + 1
+				hash = (hash << 2) + G
 				validTokenSequence = (validTokenSequence << 1) + 1
 			case 'C':
-				hash = (hash << 2) + 2
+				hash = (hash << 2) + C
 				validTokenSequence = (validTokenSequence << 1) + 1
 			case 'T':
-				hash = (hash << 2) + 3
+				hash = (hash << 2) + T
 				validTokenSequence = (validTokenSequence << 1) + 1
-			case '\n':
-				skip = true
 			default:
 				validTokenSequence = validTokenSequence << 1
 			}
-			if validTokenSequence == 65535 && !skip {
-				frequencies[hash]++
+			if validTokenSequence == max16BitU {
+				counts[hash]++
 			}
 		}
 	}
@@ -90,13 +99,13 @@ func GatherCommonSequences(stream *bufio.Reader) (frequencies map[uint32]uint32)
 func reverseHash(hash uint32) (bases string) {
 	for i := 0; i < 16; i++ {
 		switch hash % 4 {
-		case 0:
+		case A:
 			bases = "A" + bases
-		case 1:
+		case G:
 			bases = "G" + bases
-		case 2:
+		case C:
 			bases = "C" + bases
-		case 3:
+		case T:
 			bases = "T" + bases
 		}
 		hash = hash >> 2
