@@ -74,7 +74,7 @@ func GatherCommonSequences(stream *bufio.Reader) (counts map[uint32]uint32) {
 		} else if !unicode.IsSpace(c) {
 			switch c {
 			case 'A':
-				hash = hash<<2 + A
+				hash = (hash << 2) + A
 				validTokenSequence = (validTokenSequence << 1) + 1
 			case 'G':
 				hash = (hash << 2) + G
