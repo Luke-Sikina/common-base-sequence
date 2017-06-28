@@ -1,16 +1,27 @@
 package main
 
 import (
+	"container/heap"
 	"encoding/binary"
 	"fmt"
 	"github.com/boltdb/bolt"
 	"log"
+	"os"
+	"path/filepath"
 )
 
 const databaseName = "counts.db"
 
 var countsBucket = []byte("counts")
 var dataTransformer = binary.BigEndian
+
+func Clear() {
+	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+	_, err := os.Stat(dir + "/" + databaseName)
+	if os.IsExist(err) {
+		os.Remove(dir + "/" + databaseName)
+	}
+}
 
 func openDb() (*bolt.DB, error) {
 	db, err := bolt.Open(databaseName, 0644, nil)
@@ -70,4 +81,36 @@ func updateDb(counts map[uint32]uint32, db *bolt.DB) error {
 		}
 		return nil
 	})
+}
+
+func GetTopCounts(mapSize int) (top []HashCountPair, err error) {
+	db, err := openDb()
+	defer db.Close()
+	if err != nil {
+		return
+	}
+
+	top = make([]HashCountPair, mapSize)
+
+	h := &HashCountPairHeap{}
+	heap.Init(h)
+
+	db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(countsBucket)
+		bucket.ForEach(func(k, v []byte) error {
+			hash := dataTransformer.Uint32(k)
+			count := dataTransformer.Uint32(v)
+			heap.Push(h, HashCountPair{hash, count})
+			if mapSize < h.Len() {
+				heap.Pop(h)
+			}
+			return nil
+		})
+		return nil
+	})
+
+	for i := 0; i < mapSize; i++ {
+		top[i] = h.Pop().(HashCountPair)
+	}
+	return
 }

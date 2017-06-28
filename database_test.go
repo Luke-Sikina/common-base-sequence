@@ -86,3 +86,17 @@ func TestStoreCounts(t *testing.T) {
 	assert.Equal(t, uint32(3456), totalCounts[2345])
 	assert.Equal(t, uint32(4294967295), totalCounts[4294967295])
 }
+
+func TestGetTopCounts(t *testing.T) {
+	counts := map[uint32]uint32{0: 10, 1: 5, 3: 1, 5: 9, 7: 2}
+	err := StoreCounts(counts)
+	assert.True(t, err == nil, "Error opening the database. This is an error in test setup.")
+
+	actualTop, err := GetTopCounts(3)
+	expectedTop := []HashCountPair{{0, 10}, {5, 9}, {1, 5}}
+
+	assert.Equal(t, len(expectedTop), len(actualTop))
+	for index, value := range expectedTop {
+		assert.Equal(t, value, actualTop[index])
+	}
+}
