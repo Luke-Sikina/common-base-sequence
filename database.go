@@ -78,13 +78,17 @@ func updateDb(counts map[uint32]uint32, db *bolt.DB) (err error) {
 			log.Fatal(err)
 			return err
 		}
+		iteration := 0
 		for key, value := range counts {
 			keySlice, valueSlice := make([]byte, 4), make([]byte, 4)
-			dataTransformer.PutUint32(keySlice, key)
-			dataTransformer.PutUint32(valueSlice, value)
+			binary.BigEndian.PutUint32(keySlice, key)
+			binary.BigEndian.PutUint32(valueSlice, value)
 			err = bucket.Put(keySlice, valueSlice)
 			if err != nil {
 				return err
+			}
+			if iteration++; iteration%10000 == 0 {
+				log.Printf("%d map entries added to the transaction", iteration)
 			}
 		}
 		return nil
