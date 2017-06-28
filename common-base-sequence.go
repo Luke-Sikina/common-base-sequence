@@ -2,11 +2,11 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
-	"strconv"
 	"strings"
 	"unicode"
 )
@@ -21,7 +21,7 @@ func main() {
 			log.Fatal("Error retrieving counts from database.")
 		} else {
 			for _, pair := range top {
-				println("Sequence: " + reverseHash(pair.hash()) + " count: " + strconv.Itoa(int(pair.count())))
+				fmt.Printf("Sequence: %d count: %d", reverseHash(pair.hash()), int(pair.count()))
 			}
 		}
 	} else {
@@ -34,12 +34,13 @@ func iterateOverFastaFiles(dir string) {
 	for _, f := range files {
 		name := dir + "/" + f.Name()
 		if strings.HasSuffix(name, ".fa") {
-			log.Print("Finding sequences in file: " + name)
+			log.Printf("Finding sequences in file: %s", name)
 			toRead, err := os.Open(name)
 			if err == nil {
+				log.Print("Storing sequences found in file: " + name)
 				StoreCounts(GatherCommonSequences(bufio.NewReader(toRead)))
 			} else {
-				log.Fatal("Error opening file: " + name + ", ignoring.")
+				log.Fatalf("Error opening file: %s, ignoring.", name)
 				log.Fatal(err)
 			}
 		}

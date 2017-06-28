@@ -24,16 +24,19 @@ func Clear() {
 }
 
 func openDb() (*bolt.DB, error) {
+	log.Print("Opening database")
 	db, err := bolt.Open(databaseName, 0644, nil)
 	if err != nil {
 		log.Fatal(err)
 		return nil, err
 	}
+	log.Print("Database opened")
 	return db, nil
 }
 func StoreCounts(counts map[uint32]uint32) error {
 	db, err := openDb()
 	defer db.Close()
+	defer log.Print("Closing database")
 	err = updateCounts(counts, db)
 	err = updateDb(counts, db)
 
@@ -44,8 +47,9 @@ func StoreCounts(counts map[uint32]uint32) error {
 	return nil
 }
 
-func updateCounts(counts map[uint32]uint32, db *bolt.DB) error {
-	return db.View(func(tx *bolt.Tx) error {
+func updateCounts(counts map[uint32]uint32, db *bolt.DB) (err error) {
+	log.Print("Syncing counts with those found in db")
+	err = db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket(countsBucket)
 		if bucket == nil {
 			return fmt.Errorf("Bucket %q not found!", countsBucket)
@@ -62,12 +66,16 @@ func updateCounts(counts map[uint32]uint32, db *bolt.DB) error {
 		})
 		return nil
 	})
+	log.Print("Sync complete")
+	return
 }
 
-func updateDb(counts map[uint32]uint32, db *bolt.DB) error {
-	return db.Update(func(tx *bolt.Tx) error {
+func updateDb(counts map[uint32]uint32, db *bolt.DB) (err error) {
+	log.Print("Updated db with counts")
+	err = db.Update(func(tx *bolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists(countsBucket)
 		if err != nil {
+			log.Fatal(err)
 			return err
 		}
 		for key, value := range counts {
@@ -81,15 +89,18 @@ func updateDb(counts map[uint32]uint32, db *bolt.DB) error {
 		}
 		return nil
 	})
+	log.Printf("Db updated with counts. %d counts updated/added", len(counts))
+	return
 }
 
 func GetTopCounts(mapSize int) (top []HashCountPair, err error) {
 	db, err := openDb()
 	defer db.Close()
 	if err != nil {
+		log.Fatal(err)
 		return
 	}
-
+	log.Printf("Getting top %d counts.", mapSize)
 	top = make([]HashCountPair, mapSize)
 
 	h := &HashCountPairHeap{}
@@ -109,6 +120,7 @@ func GetTopCounts(mapSize int) (top []HashCountPair, err error) {
 		return nil
 	})
 
+	log.Print("Heap created. Converting to list and returning")
 	for i := 0; i < mapSize; i++ {
 		top[i] = h.Pop().(HashCountPair)
 	}
