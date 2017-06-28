@@ -15,6 +15,7 @@ const databaseName = "counts.db"
 var countsBucket = []byte("counts")
 var dataTransformer = binary.BigEndian
 
+//Removes existing database
 func Clear() {
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	_, err := os.Stat(dir + "/" + databaseName)
@@ -33,6 +34,8 @@ func openDb() (*bolt.DB, error) {
 	log.Print("Database opened")
 	return db, nil
 }
+
+//Stores the hash->count map in the datastore
 func StoreCounts(counts map[uint32]uint32) error {
 	db, err := openDb()
 	defer db.Close()
@@ -103,6 +106,8 @@ func updateDb(counts map[uint32]uint32, db *bolt.DB) (err error) {
 	return
 }
 
+//Returns the top n counts in the database in an ordered list.
+//If less than n values are present, it will return all values
 func GetTopCounts(mapSize int) (top []HashCountPair, err error) {
 	db, err := openDb()
 	defer db.Close()

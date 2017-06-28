@@ -21,7 +21,7 @@ func main() {
 			log.Fatal("Error retrieving counts from database.")
 		} else {
 			for _, pair := range top {
-				fmt.Printf("Sequence: %d count: %d", reverseHash(pair.hash()), int(pair.count()))
+				fmt.Printf("Sequence: %s count: %d", reverseHash(pair.hash()), int(pair.count()))
 			}
 		}
 	} else {
@@ -38,7 +38,7 @@ func iterateOverFastaFiles(dir string) {
 			toRead, err := os.Open(name)
 			if err == nil {
 				log.Print("Storing sequences found in file: " + name)
-				StoreCounts(GatherCommonSequences(bufio.NewReader(toRead)))
+				StoreCounts(gatherCommonSequences(bufio.NewReader(toRead)))
 			} else {
 				log.Fatalf("Error opening file: %s, ignoring.", name)
 				log.Fatal(err)
@@ -49,34 +49,34 @@ func iterateOverFastaFiles(dir string) {
 
 const (
 	max16BitU uint16 = 65535
-	A                = iota
-	G
-	C
-	T
+	a                = iota
+	g
+	c
+	t
 )
 
-func GatherCommonSequences(stream *bufio.Reader) (counts map[uint32]uint32) {
+func gatherCommonSequences(stream *bufio.Reader) (counts map[uint32]uint32) {
 	counts = make(map[uint32]uint32)
-	var validTokenSequence uint16 = 0
-	var hash uint32 = 0
-	var c rune
+	var validTokenSequence uint16
+	var hash uint32
+	var char rune
 	var err error
 	for err != io.EOF {
-		if c, _, err = stream.ReadRune(); err != nil && err != io.EOF {
+		if char, _, err = stream.ReadRune(); err != nil && err != io.EOF {
 			log.Fatal(err)
-		} else if !unicode.IsSpace(c) {
-			switch c {
+		} else if !unicode.IsSpace(char) {
+			switch char {
 			case 'A':
-				hash = (hash << 2) + A
+				hash = (hash << 2) + a
 				validTokenSequence = (validTokenSequence << 1) + 1
 			case 'G':
-				hash = (hash << 2) + G
+				hash = (hash << 2) + g
 				validTokenSequence = (validTokenSequence << 1) + 1
 			case 'C':
-				hash = (hash << 2) + C
+				hash = (hash << 2) + c
 				validTokenSequence = (validTokenSequence << 1) + 1
 			case 'T':
-				hash = (hash << 2) + T
+				hash = (hash << 2) + t
 				validTokenSequence = (validTokenSequence << 1) + 1
 			default:
 				validTokenSequence = validTokenSequence << 1
@@ -92,13 +92,13 @@ func GatherCommonSequences(stream *bufio.Reader) (counts map[uint32]uint32) {
 func reverseHash(hash uint32) (bases string) {
 	for i := 0; i < 16; i++ {
 		switch hash % 4 {
-		case A:
+		case a:
 			bases = "A" + bases
-		case G:
+		case g:
 			bases = "G" + bases
-		case C:
+		case c:
 			bases = "C" + bases
-		case T:
+		case t:
 			bases = "T" + bases
 		}
 		hash = hash >> 2

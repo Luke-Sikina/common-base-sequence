@@ -28,6 +28,7 @@ func TestUpdateCounts(t *testing.T) {
 	updateDb(storedCounts, db)
 	db.Close()
 	db, err = openDb()
+	assert.True(t, err == nil, "Error opening the database. This is an error in test setup.")
 
 	newCounts := map[uint32]uint32{0: 5, 1: 20, 2: 22, 2345: 1111}
 	updateCounts(newCounts, db)
@@ -93,6 +94,7 @@ func TestGetTopCounts(t *testing.T) {
 	assert.True(t, err == nil, "Error opening the database. This is an error in test setup.")
 
 	actualTop, err := GetTopCounts(3)
+	assert.True(t, err == nil)
 	expectedTop := []HashCountPair{{0, 10}, {5, 9}, {1, 5}}
 
 	assert.Equal(t, len(expectedTop), len(actualTop))

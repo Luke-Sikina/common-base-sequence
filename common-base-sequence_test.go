@@ -28,7 +28,7 @@ func TestGatherCommonSequences(t *testing.T) {
 	expected["AACCTAACCCTAACCC"] = 1
 	expected["ACCTAACCCTAACCCT"] = 1
 
-	counts := GatherCommonSequences(bufio.NewReader(strings.NewReader(sequence)))
+	counts := gatherCommonSequences(bufio.NewReader(strings.NewReader(sequence)))
 	assert.Equal(t, len(expected), len(counts))
 	for hash, count := range counts {
 		subSequence := reverseHash(hash)
