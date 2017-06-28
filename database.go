@@ -70,29 +70,36 @@ func updateCounts(counts map[uint32]uint32, db *bolt.DB) (err error) {
 	return
 }
 
+const maxTransactionSize = 10000
+
 func updateDb(counts map[uint32]uint32, db *bolt.DB) (err error) {
 	log.Print("Updated db with counts")
-	err = db.Update(func(tx *bolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists(countsBucket)
-		if err != nil {
-			log.Fatal(err)
-			return err
+	iteration := 0
+	var keysForCurrentTransaction [maxTransactionSize]uint32
+	for key := range counts {
+		keysForCurrentTransaction[iteration] = key
+		if iteration++; iteration%maxTransactionSize == 0 {
+			iteration = 0
+			log.Printf("10000 commits to transaction since last commit. Committing.")
+			err = db.Update(func(tx *bolt.Tx) error {
+				bucket, err := tx.CreateBucketIfNotExists(countsBucket)
+				if err != nil {
+					log.Fatal(err)
+					return err
+				}
+				for _, subKey := range keysForCurrentTransaction {
+					keySlice, valueSlice := make([]byte, 4), make([]byte, 4)
+					binary.BigEndian.PutUint32(keySlice, subKey)
+					binary.BigEndian.PutUint32(valueSlice, counts[subKey])
+					err = bucket.Put(keySlice, valueSlice)
+					if err != nil {
+						return err
+					}
+				}
+				return nil
+			})
 		}
-		iteration := 0
-		for key, value := range counts {
-			keySlice, valueSlice := make([]byte, 4), make([]byte, 4)
-			binary.BigEndian.PutUint32(keySlice, key)
-			binary.BigEndian.PutUint32(valueSlice, value)
-			err = bucket.Put(keySlice, valueSlice)
-			if err != nil {
-				return err
-			}
-			if iteration++; iteration%10000 == 0 {
-				log.Printf("%d map entries added to the transaction", iteration)
-			}
-		}
-		return nil
-	})
+	}
 	log.Printf("Db updated with counts. %d counts updated/added", len(counts))
 	return
 }
