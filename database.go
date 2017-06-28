@@ -80,7 +80,6 @@ func updateDb(counts map[uint32]uint32, db *bolt.DB) (err error) {
 		keysForCurrentTransaction[iteration] = key
 		if iteration++; iteration%maxTransactionSize == 0 {
 			iteration = 0
-			log.Printf("10000 commits to transaction since last commit. Committing.")
 			err = db.Update(func(tx *bolt.Tx) error {
 				bucket, err := tx.CreateBucketIfNotExists(countsBucket)
 				if err != nil {
