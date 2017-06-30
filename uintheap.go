@@ -1,19 +1,14 @@
 package main
 
-type HashCountPair [2]uint32
-
-func (pair *HashCountPair) hash() uint32 {
-	return pair[0]
-}
-
-func (pair *HashCountPair) count() uint32 {
-	return pair[1]
+type HashCountPair struct {
+	hash  Hash
+	count uint32
 }
 
 type HashCountPairHeap []HashCountPair
 
 func (h HashCountPairHeap) Len() int           { return len(h) }
-func (h HashCountPairHeap) Less(i, j int) bool { return h[i][1] < h[j][1] }
+func (h HashCountPairHeap) Less(i, j int) bool { return h[i].count < h[j].count }
 func (h HashCountPairHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
 
 func (h *HashCountPairHeap) Push(x interface{}) {
